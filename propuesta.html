@@ -773,6 +773,7 @@ function goArcade(){
   showArcOverlay('🏃', `¡Vamos a ${c.name}!`,
     `«${START_PHRASE}»<br><br>Corre, salta y esquiva 🍞 💢 📄 · recoge corazones · llegad juntos a la foto del final.`,
     '▶ Empezar', startLevel);
+  speak(START_PHRASE);
 }
 
 function buildLevel(){
@@ -807,7 +808,33 @@ const HIT_PHRASES = {
 };
 const START_PHRASE = '¿Me quieres, sí o no, gorda?';
 const WIN_PHRASE = 'Gordooo, te quiero';
-const JUMP_PHRASE = 'Olé las bubis';
+const JUMP_PHRASE = 'Me zumba la polla to';
+const COIN_PHRASE = 'Somos un equipo';
+
+/* ---------- VOZ (texto a voz en español) ---------- */
+let esVoice = null;
+function pickVoice(){
+  const voices = speechSynthesis.getVoices();
+  esVoice = voices.find(v=>v.lang==='es-ES' && /female|mujer|mónica|elvira|helena|paloma|laura/i.test(v.name))
+        || voices.find(v=>v.lang==='es-ES')
+        || voices.find(v=>v.lang && v.lang.startsWith('es'))
+        || null;
+}
+if('speechSynthesis' in window){
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/[¡!¿?«»]/g,''));
+    u.lang = 'es-ES';
+    if(esVoice) u.voice = esVoice;
+    u.pitch = 1.05; u.rate = 1.02; u.volume = 1;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
 
 let speechTO;
 function say(msg){
@@ -816,6 +843,7 @@ function say(msg){
   el.classList.add('show');
   clearTimeout(speechTO);
   speechTO = setTimeout(()=>el.classList.remove('show'), 1400);
+  speak(msg);
 }
 
 let lastJumpSay = 0;
@@ -891,6 +919,7 @@ function checkCoins(){
       cn.taken=true; score += (cn.icon==='❤️'?1:2);
       spawnConfettiArc(cn.x*TILE+TILE/2, cn.y*TILE+TILE/2, 6);
       updateArcHUD();
+      if(Math.random()<0.35) say(COIN_PHRASE);
     }
   });
 }
@@ -1072,6 +1101,7 @@ function arcLevelComplete(){
   showArcOverlay('🎉', `¡Lo lograsteis en ${c.name}!`,
     `«${WIN_PHRASE}»<br><br>Corazones recogidos: <b>${score}</b>`,
     'Siguiente ciudad ▶', onArcadeDone);
+  speak(WIN_PHRASE);
 }
 
 function arcGameOver(){
