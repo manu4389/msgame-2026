@@ -345,7 +345,7 @@ async function buildFace(key, url, crop){
     faceCanvas[key] = fc;
   }catch(e){ console.warn('face load error', key, e); }
 }
-buildFace('samara', 'fotos/final.jpg?v='+PHOTO_VERSION,   [0.125, 0.0375, 0.458, 0.40]);
+buildFace('samara', 'fotos/final.jpg?v='+PHOTO_VERSION,   [0.10, 0.02, 0.60, 0.52]);
 buildFace('manuel', 'fotos/portada.jpg?v='+PHOTO_VERSION, [0.122, 0.1625, 0.278, 0.42]);
 
 function drawFaceSprite(key, cx, cy, size, fallbackEmoji){
@@ -729,10 +729,10 @@ const ctx = canvas.getContext('2d');
 canvas.width = W; canvas.height = H;
 
 const THEMES = {
-  hills:  {sky1:'#bfe9ff', sky2:'#eaffe0', deco:'#6fbf6f'},
-  beach:  {sky1:'#bdeaff', sky2:'#fff3cf', deco:'#3aa0c9'},
-  city:   {sky1:'#cdd6e8', sky2:'#eef0f5', deco:'#8a93ab'},
-  lisboa: {sky1:'#ffe3c2', sky2:'#ffd7e6', deco:'#e08a52'},
+  hills:  {sky1:'#bfe9ff', sky2:'#eaffe0', deco:'#6fbf6f', sun:'#fff6c9', mountain:'#8fc48a', ground:'#7ab35c', groundEdge:'#5c9142'},
+  beach:  {sky1:'#bdeaff', sky2:'#fff3cf', deco:'#e8d9a0', sun:'#ffedad', mountain:'#5fb8dd', ground:'#eddcaa', groundEdge:'#d6bd80'},
+  city:   {sky1:'#cdd6e8', sky2:'#eef0f5', deco:'#8a93ab', sun:'#f4f4f8', mountain:'#aab1c4', ground:'#9aa0ad', groundEdge:'#767c88'},
+  lisboa: {sky1:'#ffe3c2', sky2:'#ffd7e6', deco:'#e08a52', sun:'#ffd98a', mountain:'#f0b27a', ground:'#d98a54', groundEdge:'#b4693a'},
 };
 const ENEMY_ICON = {gluten:'🍞', pelea:'💢', burocracia:'📄'};
 
@@ -961,6 +961,14 @@ function drawBackground(){
   const g = ctx.createLinearGradient(0,0,0,H);
   g.addColorStop(0, th.sky1); g.addColorStop(1, th.sky2);
   ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+  // sol
+  const sx = W*0.8, sy = 54;
+  const sg = ctx.createRadialGradient(sx,sy,2,sx,sy,34);
+  sg.addColorStop(0,'#fff'); sg.addColorStop(0.4,th.sun); sg.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=sg; ctx.beginPath(); ctx.arc(sx,sy,34,0,Math.PI*2); ctx.fill();
+
+  // nubes
   for(let i=0;i<5;i++){
     const bx = (i*220 - camX*0.3) % (W+260) - 130;
     const by = 30 + (i%3)*26;
@@ -970,13 +978,43 @@ function drawBackground(){
     ctx.ellipse(bx+20,by+5,18,10,0,0,Math.PI*2);
     ctx.fill();
   }
+
+  // montañas / horizonte lejano (parallax lento)
+  ctx.fillStyle = th.mountain; ctx.globalAlpha=.4;
+  ctx.beginPath();
+  ctx.moveTo(-40, H-118);
+  const mw = 130;
+  for(let x=-40; x<W+80; x+=mw){
+    const wx = x + camX*0.12;
+    const peak = H-118 - (28 + 22*Math.abs(Math.sin(wx*0.011)));
+    ctx.lineTo(x + mw/2 - camX*0.12%mw, peak);
+    ctx.lineTo(x + mw - camX*0.12%mw, H-118);
+  }
+  ctx.lineTo(W+80, H-118); ctx.lineTo(W+80,H); ctx.lineTo(-40,H); ctx.closePath();
+  ctx.fill(); ctx.globalAlpha=1;
+
+  // decoración media (árboles / dunas / edificios con ventanas / tejados, según tema)
   for(let i=0;i<8;i++){
     const bw=44, bh=60+((i*37)%50);
     const bx = i*70 - (camX*0.5)%560;
-    ctx.fillStyle = th.deco; ctx.globalAlpha=.35;
-    ctx.fillRect(bx, H-110-bh, bw, bh);
+    const by = H-110-bh;
+    ctx.globalAlpha=.55;
+    if(lvl.theme==='hills'){
+      ctx.fillStyle = th.deco;
+      ctx.fillRect(bx+bw*0.42, by+bh*0.4, bw*0.16, bh*0.6);
+      ctx.beginPath(); ctx.ellipse(bx+bw/2, by+bh*0.35, bw*0.5, bh*0.42, 0,0,Math.PI*2); ctx.fill();
+    } else if(lvl.theme==='beach'){
+      ctx.fillStyle = th.deco;
+      ctx.beginPath(); ctx.ellipse(bx+bw/2, H-108, bw*0.6, bh*0.18, 0,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle = th.deco;
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.fillStyle='rgba(255,255,255,.4)';
+      for(let wy=6; wy<bh-8; wy+=14) for(let wx=6; wx<bw-8; wx+=13) ctx.fillRect(bx+wx, by+wy, 6,8);
+    }
     ctx.globalAlpha=1;
   }
+
   (lvl.landmarks||[]).forEach(l=>{
     const worldX = l.xFrac*lvl.widthTiles*TILE;
     const lx = worldX - camX*0.6;
@@ -991,13 +1029,34 @@ function drawBackground(){
 }
 
 function drawGround(){
+  const th = THEMES[lvl.theme] || THEMES.hills;
   for(const p of lvl.platforms){
     const px=p.x*TILE-camX, py=p.y*TILE, pw=p.w*TILE, ph=p.h*TILE;
     if(px+pw<0 || px>W) continue;
-    ctx.fillStyle = '#8a5a2e';
+    ctx.fillStyle = th.ground;
     ctx.fillRect(px,py,pw,ph);
-    ctx.fillStyle = '#a9713c';
-    ctx.fillRect(px,py,pw,7);
+    ctx.fillStyle = th.groundEdge;
+    ctx.fillRect(px,py,pw,8);
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(px,py,pw,ph); ctx.clip();
+    if(lvl.theme==='hills'){
+      ctx.fillStyle='rgba(255,255,255,.35)';
+      for(let x=6; x<pw; x+=16){ ctx.beginPath(); ctx.moveTo(px+x,py+8); ctx.lineTo(px+x+4,py+2); ctx.lineTo(px+x+8,py+8); ctx.fill(); }
+    } else if(lvl.theme==='beach'){
+      ctx.fillStyle='rgba(255,255,255,.5)';
+      for(let x=8; x<pw; x+=14) for(let y=14; y<ph; y+=14) ctx.fillRect(px+x+(y%28===0?4:0), py+y, 2,2);
+    } else if(lvl.theme==='city'){
+      ctx.strokeStyle='rgba(0,0,0,.15)'; ctx.lineWidth=1;
+      for(let x=0; x<pw; x+=22){ ctx.beginPath(); ctx.moveTo(px+x,py+8); ctx.lineTo(px+x,py+ph); ctx.stroke(); }
+    } else {
+      const tile=16;
+      for(let x=0; x*tile<pw; x++) for(let y=0; y*tile<ph-8; y++){
+        ctx.fillStyle = (x+y)%2===0 ? 'rgba(255,255,255,.28)' : 'rgba(255,255,255,.08)';
+        ctx.fillRect(px+x*tile, py+8+y*tile, tile, tile);
+      }
+    }
+    ctx.restore();
   }
 }
 
