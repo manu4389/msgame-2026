@@ -261,7 +261,7 @@
       </div>
       <button id="jump-btn">SALTAR</button>
     </div>
-    <p class="arcade-hint">Corre con ◀ ▶ y salta con el botón dorado · esquiva 🍞 (gluten) 💢 (peleas) 📄 (burocracia) · recoge ❤️</p>
+    <p class="arcade-hint">Corre con ◀ ▶ y salta con el botón dorado · esquiva 🍞 (gluten) 💢 (peleas) 📄 (burocracia, ¡grande!) · recoge ❤️ 👠 🧁</p>
   </div>
 
   <!-- REFLECTION BRIDGE -->
@@ -395,13 +395,15 @@ const CITIES = [
       pits:[{x:8,y:8,w:2},{x:16,y:8,w:2}],
       coins:[
         ...coinRow(range(1,6,1.3),6),
-        ...coinRow(range(10.5,12.5,1),3),
+        ...coinRow(range(10.5,12.5,1),3,'🧁'),
         ...coinRow(range(18.5,26,1.3),6),
       ],
       enemies:[
+        {x:4,y:6.2,type:'burocracia',min:1,max:7},
         {x:12,y:6.2,type:'gluten',min:10.5,max:15.5},
         {x:22,y:6.2,type:'burocracia',min:19,max:26},
       ],
+      landmarks:[{emoji:'🐻',xFrac:0.06},{emoji:'🏔️',xFrac:0.7}],
       goal:{x:26,y:6},
     }
   },
@@ -435,8 +437,10 @@ const CITIES = [
       ],
       enemies:[
         {x:12,y:6.2,type:'pelea',min:9.5,max:13.5},
+        {x:18,y:6.2,type:'burocracia',min:16.5,max:21.5},
         {x:27,y:6.2,type:'gluten',min:24.5,max:29.5},
       ],
+      landmarks:[{emoji:'🕌',xFrac:0.55}],
       goal:{x:28,y:6},
     }
   },
@@ -465,12 +469,13 @@ const CITIES = [
       pits:[{x:7,y:8,w:2},{x:15,y:8,w:2},{x:22,y:8,w:2}],
       coins:[
         ...coinRow(range(1,5,1.3),6),
-        ...coinRow(range(9.5,12.5,1),3),
+        ...coinRow(range(9.5,12.5,1),3,'👠'),
         ...coinRow(range(17.5,21.5,1.3),6),
         ...coinRow(range(24.5,29,1.3),6),
       ],
       enemies:[
         {x:11,y:6.2,type:'pelea',min:9.5,max:14.5},
+        {x:19,y:6.2,type:'burocracia',min:17.5,max:21.5},
         {x:27,y:6.2,type:'burocracia',min:24.5,max:29.5},
       ],
       goal:{x:28,y:6},
@@ -507,7 +512,7 @@ const CITIES = [
       pits:[{x:7,y:8,w:2},{x:14,y:8,w:2},{x:21,y:8,w:2},{x:28,y:8,w:2}],
       coins:[
         ...coinRow(range(1,5,1.3),6),
-        ...coinRow(range(9.5,11.5,1),3,'📖'),
+        ...coinRow(range(9.5,11.5,1),3,'🧁'),
         ...coinRow(range(16.5,20.5,1.3),6),
         ...coinRow(range(23.5,25.5,1),3,'📖'),
         ...coinRow(range(30.5,33,1),6),
@@ -515,6 +520,7 @@ const CITIES = [
       enemies:[
         {x:11,y:6.2,type:'gluten',min:9.5,max:13.5},
         {x:18,y:6.2,type:'pelea',min:16.5,max:20.5},
+        {x:25,y:6.2,type:'burocracia',min:23.5,max:27.5},
         {x:32,y:6.2,type:'burocracia',min:30.5,max:33.5},
       ],
       goal:{x:32,y:6},
@@ -809,7 +815,8 @@ const HIT_PHRASES = {
 const START_PHRASE = '¿Me quieres, sí o no, gorda?';
 const WIN_PHRASE = 'Gordooo, te quiero';
 const JUMP_PHRASE = 'Me zumba la polla to';
-const COIN_PHRASE = 'Somos un equipo';
+const POSITIVE_PHRASES = ['Somos un equipo', 'Qué bien me cae tu hermana'];
+const PASTEL_PHRASE = 'Qué ricos pasteles sin gluten de la Oriental';
 
 /* ---------- VOZ (texto a voz en español) ---------- */
 let esVoice = null;
@@ -919,7 +926,8 @@ function checkCoins(){
       cn.taken=true; score += (cn.icon==='❤️'?1:2);
       spawnConfettiArc(cn.x*TILE+TILE/2, cn.y*TILE+TILE/2, 6);
       updateArcHUD();
-      if(Math.random()<0.35) say(COIN_PHRASE);
+      if(cn.icon==='🧁'){ say(PASTEL_PHRASE); }
+      else if(Math.random()<0.35){ say(POSITIVE_PHRASES[Math.floor(Math.random()*POSITIVE_PHRASES.length)]); }
     }
   });
 }
@@ -931,7 +939,8 @@ function updateEnemies(dt){
     if(e.x<=e.min){ e.x=e.min; e.dir=1; }
     if(e.x>=e.max){ e.x=e.max; e.dir=-1; }
     const pr = {x:player.x-player.w/2, y:player.y-player.h, w:player.w, h:player.h};
-    const ew=30, eh=32;
+    const big = e.type==='burocracia';
+    const ew=big?42:30, eh=big?46:32;
     const er = {x:e.x*TILE+TILE/2-ew/2, y:e.y*TILE-eh, w:ew, h:eh};
     if(rectsOverlap(pr,er) && invuln<=0){
       hitPlayer(false, e.type);
@@ -968,6 +977,17 @@ function drawBackground(){
     ctx.fillRect(bx, H-110-bh, bw, bh);
     ctx.globalAlpha=1;
   }
+  (lvl.landmarks||[]).forEach(l=>{
+    const worldX = l.xFrac*lvl.widthTiles*TILE;
+    const lx = worldX - camX*0.6;
+    if(lx<-40||lx>W+40) return;
+    ctx.save();
+    ctx.globalAlpha=.55;
+    ctx.font=`${Math.floor(TILE*1.6)}px sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(l.emoji, lx, 70);
+    ctx.restore();
+  });
 }
 
 function drawGround(){
@@ -998,10 +1018,11 @@ function drawEnemies(){
     const cx=e.x*TILE+TILE/2-camX, cy=e.y*TILE;
     if(cx<-40||cx>W+40) return;
     const bob = Math.sin(Date.now()/160+e.x)*3;
+    const big = e.type==='burocracia';
     ctx.save();
     ctx.translate(cx, cy-16+bob);
     ctx.scale(e.dir<0?1:-1,1);
-    ctx.font=`${Math.floor(TILE*0.7)}px sans-serif`;
+    ctx.font=`${Math.floor(TILE*(big?1.15:0.7))}px sans-serif`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(ENEMY_ICON[e.type]||'❓', 0, 0);
     ctx.restore();
