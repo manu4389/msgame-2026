@@ -729,12 +729,19 @@ const ctx = canvas.getContext('2d');
 canvas.width = W; canvas.height = H;
 
 const THEMES = {
-  hills:  {sky1:'#bfe9ff', sky2:'#eaffe0', deco:'#6fbf6f', sun:'#fff6c9', mountain:'#8fc48a', ground:'#7ab35c', groundEdge:'#5c9142'},
-  beach:  {sky1:'#bdeaff', sky2:'#fff3cf', deco:'#e8d9a0', sun:'#ffedad', mountain:'#5fb8dd', ground:'#eddcaa', groundEdge:'#d6bd80'},
-  city:   {sky1:'#cdd6e8', sky2:'#eef0f5', deco:'#8a93ab', sun:'#f4f4f8', mountain:'#aab1c4', ground:'#9aa0ad', groundEdge:'#767c88'},
-  lisboa: {sky1:'#ffe3c2', sky2:'#ffd7e6', deco:'#e08a52', sun:'#ffd98a', mountain:'#f0b27a', ground:'#d98a54', groundEdge:'#b4693a'},
+  hills:  {sky1:'#bfe9ff', sky2:'#eaffe0', deco:'#6fbf6f', sun:'#fff6c9', mountain:'#8fc48a', ground:'#7ab35c', groundEdge:'#5c9142', photo:'candeleda.jpg'},
+  beach:  {sky1:'#bdeaff', sky2:'#fff3cf', deco:'#e8d9a0', sun:'#ffedad', mountain:'#5fb8dd', ground:'#eddcaa', groundEdge:'#d6bd80', photo:'granada.jpg'},
+  city:   {sky1:'#cdd6e8', sky2:'#eef0f5', deco:'#8a93ab', sun:'#f4f4f8', mountain:'#aab1c4', ground:'#9aa0ad', groundEdge:'#767c88', photo:'berlin.jpg'},
+  lisboa: {sky1:'#ffe3c2', sky2:'#ffd7e6', deco:'#e08a52', sun:'#ffd98a', mountain:'#f0b27a', ground:'#d98a54', groundEdge:'#b4693a', photo:'lisboa.jpg'},
 };
 const ENEMY_ICON = {gluten:'🍞', pelea:'💢', burocracia:'📄'};
+
+const THEME_PHOTOS = {};
+Object.keys(THEMES).forEach(key=>{
+  const img = new Image();
+  img.src = 'fotos/ciudades/' + THEMES[key].photo + '?v=' + PHOTO_VERSION;
+  THEME_PHOTOS[key] = img;
+});
 
 let arcState='idle', lvl=null, player=null, camX=0;
 let coinsLeft=[], enemyState=[], score=0, lives=3, invuln=0, arcRAF=null, lastT=0;
@@ -956,11 +963,34 @@ function checkGoal(){
   if(Math.hypot(dx,dy) < TILE*1.1) arcLevelComplete();
 }
 
+function drawThemePhoto(){
+  const img = THEME_PHOTOS[lvl.theme];
+  if(!img || !img.complete || !img.naturalWidth) return false;
+  const bandH = H-95;
+  const boxW = W+220;
+  const scale = Math.max(boxW/img.naturalWidth, bandH/img.naturalHeight);
+  const iw = img.naturalWidth*scale, ih = img.naturalHeight*scale;
+  const x = -110 - camX*0.15;
+  const y = (bandH-ih)/2;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0,0,W,bandH); ctx.clip();
+  ctx.drawImage(img, x, y, iw, ih);
+  ctx.restore();
+  return true;
+}
+
 function drawBackground(){
   const th = THEMES[lvl.theme] || THEMES.hills;
   const g = ctx.createLinearGradient(0,0,0,H);
   g.addColorStop(0, th.sky1); g.addColorStop(1, th.sky2);
   ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+  const hasPhoto = drawThemePhoto();
+  if(hasPhoto){
+    const scrim = ctx.createLinearGradient(0,0,0,H-95);
+    scrim.addColorStop(0, th.sky1); scrim.addColorStop(1, th.sky2);
+    ctx.globalAlpha=.32; ctx.fillStyle=scrim; ctx.fillRect(0,0,W,H-95); ctx.globalAlpha=1;
+  }
 
   // sol
   const sx = W*0.8, sy = 54;
@@ -979,19 +1009,21 @@ function drawBackground(){
     ctx.fill();
   }
 
-  // montañas / horizonte lejano (parallax lento)
-  ctx.fillStyle = th.mountain; ctx.globalAlpha=.4;
-  ctx.beginPath();
-  ctx.moveTo(-40, H-118);
-  const mw = 130;
-  for(let x=-40; x<W+80; x+=mw){
-    const wx = x + camX*0.12;
-    const peak = H-118 - (28 + 22*Math.abs(Math.sin(wx*0.011)));
-    ctx.lineTo(x + mw/2 - camX*0.12%mw, peak);
-    ctx.lineTo(x + mw - camX*0.12%mw, H-118);
+  // montañas / horizonte lejano (solo si la foto real aún no cargó)
+  if(!hasPhoto){
+    ctx.fillStyle = th.mountain; ctx.globalAlpha=.4;
+    ctx.beginPath();
+    ctx.moveTo(-40, H-118);
+    const mw = 130;
+    for(let x=-40; x<W+80; x+=mw){
+      const wx = x + camX*0.12;
+      const peak = H-118 - (28 + 22*Math.abs(Math.sin(wx*0.011)));
+      ctx.lineTo(x + mw/2 - camX*0.12%mw, peak);
+      ctx.lineTo(x + mw - camX*0.12%mw, H-118);
+    }
+    ctx.lineTo(W+80, H-118); ctx.lineTo(W+80,H); ctx.lineTo(-40,H); ctx.closePath();
+    ctx.fill(); ctx.globalAlpha=1;
   }
-  ctx.lineTo(W+80, H-118); ctx.lineTo(W+80,H); ctx.lineTo(-40,H); ctx.closePath();
-  ctx.fill(); ctx.globalAlpha=1;
 
   // decoración media (árboles / dunas / edificios con ventanas / tejados, según tema)
   for(let i=0;i<8;i++){
