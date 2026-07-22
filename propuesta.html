@@ -276,7 +276,7 @@
 
   <!-- FINAL -->
   <div class="screen" id="s-final">
-    <div class="badge">Berlín · Insomnia</div>
+    <div class="badge">Berlín · última noche</div>
     <h1>Hemos llegado</h1>
     <img class="final-photo-img" id="photo-final" alt="">
     <div class="final-photo-row">🇪🇸🏄‍♂️➡️🇩🇪🎶➡️🇵🇹📚</div>
@@ -446,15 +446,15 @@ const CITIES = [
   },
   {
     name:"Berlín",
-    desc:"Insomnia, ropa de rejilla y kilómetros de conciertos.",
+    desc:"Ropa de rejilla, una noche especial y kilómetros de conciertos.",
     photo:"berlin.jpg",
     quiz:[
-      {q:"¿En qué ciudad fuimos al Insomnia?", opts:["Lisboa","Berlín","Granada"], a:1},
+      {q:"¿Qué buscamos tanto tiempo antes de salir una noche en Berlín?", opts:["El conjunto perfecto","Un restaurante","Un taxi"], a:0},
       {q:"¿Cuál ha sido nuestro viaje más largo reciente?", opts:["Candeleda","Berlín + Lisboa","Granada"], a:1},
       {q:"¿Quién tarda más en arreglarse para salir?", opts:["Samara","Manuel"], a:1},
     ],
     anecdotes:[
-      {title:"😂 La ropa del Insomnia", text:"Antes de ir al Insomnia dedicamos bastante tiempo a buscar la ropa perfecta: camisetas de rejilla, tirantes, pantalones negros y zapatillas, hasta encontrar el conjunto ideal."},
+      {title:"😂 La ropa para la fiesta", text:"Antes de una noche especial dedicamos bastante tiempo a buscar la ropa perfecta: camisetas de rejilla, tirantes, pantalones negros y zapatillas, hasta encontrar el conjunto ideal."},
       {title:"🛍️ Las devoluciones imposibles", text:"Después de Berlín intentaste devolver la ropa de Primark comprada allí... y descubriste que la tienda española no aceptaba devoluciones procedentes de otro país."},
     ],
     level:{
@@ -821,8 +821,8 @@ const HIT_PHRASES = {
 };
 const START_PHRASE = '¿Me quieres, sí o no, gorda?';
 const WIN_PHRASE = 'Gordooo, te quiero';
-const JUMP_PHRASE = 'Me zumba la polla to';
-const POSITIVE_PHRASES = ['Somos un equipo', 'Qué bien me cae tu hermana'];
+const JUMP_PHRASE = 'Me zumba la polla toda';
+const POSITIVE_PHRASES = ['Somos un equipo', 'Qué bien me cae tu hermana', 'Poco para lo que nos merecemos'];
 const PASTEL_PHRASE = 'Qué ricos pasteles sin gluten de la Oriental';
 
 /* ---------- VOZ (texto a voz en español) ---------- */
@@ -866,7 +866,7 @@ function tryJump(){
     player.vy = JUMP_V;
     player.onGround = false;
     const now = performance.now();
-    if(now - lastJumpSay > 2500){ say(JUMP_PHRASE); lastJumpSay = now; }
+    if(now - lastJumpSay > 9000 && Math.random()<0.4){ say(JUMP_PHRASE); lastJumpSay = now; }
   }
 }
 
